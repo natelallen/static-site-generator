@@ -1,6 +1,6 @@
 import unittest
 
-from htmlnode import HTMLNode, LeafNode
+from htmlnode import HTMLNode, LeafNode, ParentNode
 
 class TestHTMLNode(unittest.TestCase):
     def test_props_to_html_working(self):
@@ -51,8 +51,68 @@ class TestHTMLNode(unittest.TestCase):
             "LeafNode(tag=a, value=some random text, props={'attribute': 'value'})",
         )
 
+    # ParentNode tests
+
+    def test_to_html_with_children(self):
+        child_node = LeafNode("span", "child")
+        parent_node = ParentNode("div", [child_node])
+        self.assertEqual(parent_node.to_html(), "<div><span>child</span></div>")
+
+    def test_to_html_with_grandchildren(self):
+        grandchild_node = LeafNode("b", "grandchild")
+        child_node = ParentNode("span", [grandchild_node])
+        parent_node = ParentNode("div", [child_node])
+        self.assertEqual(
+            parent_node.to_html(),
+            "<div><span><b>grandchild</b></span></div>",
+        )
+    
+    def test_to_html_several_children(self):
+        node = ParentNode(
+            "p",
+            [
+            LeafNode("i", "italic text"),
+            LeafNode(None, "normal text"),
+            LeafNode("b", "bold text"),
+            ],
+        )
+        self.assertEqual(node.to_html(), "<p><i>italic text</i>normal text<b>bold text</b></p>")
+
+    def test_headings(self):
+        node = ParentNode(
+            "h2",
+            [
+                LeafNode("b", "Bold text"),
+                LeafNode(None, "Normal text"),
+                LeafNode("i", "italic text"),
+                LeafNode(None, "Normal text"),
+            ],
+        )
+        self.assertEqual(node.to_html(), "<h2><b>Bold text</b>Normal text<i>italic text</i>Normal text</h2>",)
 
 
+    def test_parent_no_children(self): # Testing exception raising
+        parent_node = ParentNode("div", None)
+        with self.assertRaises(ValueError) as cm:
+            parent_node.to_html()
+        expected_message = "Invalid HTML: ParentNode is missing a children value"
+        self.assertEqual(str(cm.exception), expected_message)
 
+    def test_parent_no_value(self): # Testing exception raising
+        child_node = LeafNode("span", "child")
+        parent_node = ParentNode(None, [child_node])
+        with self.assertRaises(ValueError) as cm:
+            parent_node.to_html()
+        expected_message = "Invalid HTML: ParentNode has no tag value assigned"
+        self.assertEqual(str(cm.exception), expected_message)
+    
+    def test_parent_repr(self):
+        node = ParentNode("h2", [LeafNode("b", "Bold text"), LeafNode(None, "Normal text"),],)
+        self.assertEqual(
+            node.__repr__(),
+            "ParentNode(tag=h2, children=[LeafNode(tag=b, value=Bold text, props=None), LeafNode(tag=None, value=Normal text, props=None)], props=None)"
+        )
+    
+    
 if __name__ == "__main__":
     unittest.main()
